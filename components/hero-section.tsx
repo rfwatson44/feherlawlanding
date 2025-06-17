@@ -29,7 +29,7 @@ export function HeroSection() {
                 <p className="text-sm text-blue-200 font-medium">Total Recovered</p>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-white mb-1">80+</div>
+                <div className="text-2xl sm:text-3xl font-bold text-white mb-1">Countless</div>
                 <p className="text-sm text-blue-200 font-medium">Cases Won</p>
               </div>
             </div>
@@ -78,7 +78,7 @@ export function HeroSection() {
                   <p className="text-lg text-blue-200 font-medium">Total Recovered</p>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl lg:text-5xl font-bold text-white mb-2">80+</div>
+                  <div className="text-3xl lg:text-5xl font-bold text-white mb-2">Countless</div>
                   <p className="text-lg text-blue-200 font-medium">Cases Won</p>
                 </div>
               </div>
