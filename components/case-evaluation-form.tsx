@@ -47,12 +47,61 @@ export function CaseEvaluationForm() {
     smsConsent: false,
   })
 
+  // Phone formatting helper
+  const formatPhone = (value: string) => {
+    // Remove all non-digits
+    const digits = value.replace(/\D/g, "").slice(0, 10)
+    const match = digits.match(/(\d{0,3})(\d{0,3})(\d{0,4})/)
+    if (!match) return ""
+    let formatted = ""
+    if (match[1]) formatted = `(${match[1]}`
+    if (match[2]) formatted += `)${match[2]}`
+    if (match[3]) formatted += `-${match[3]}`
+    return formatted
+  }
+
   const updateFormData = (field: keyof FormData, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    if (field === "phone" && typeof value === "string") {
+      setFormData((prev) => ({ ...prev, [field]: formatPhone(value) }))
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }))
+    }
+  }
+
+  // Validation per step
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return formData.terminated && formData.discriminated
+      case 2:
+        return (
+          !!formData.employer &&
+          !!formData.yearsWorked &&
+          !!formData.occupation
+        )
+      case 3:
+        return (
+          !!formData.state &&
+          !!formData.terminationDate &&
+          !!formData.hasAttorney
+        )
+      case 4:
+        return !!formData.situation
+      case 5:
+        return (
+          !!formData.firstName &&
+          !!formData.lastName &&
+          !!formData.email &&
+          formData.phone.replace(/\D/g, "").length === 10 &&
+          formData.smsConsent
+        )
+      default:
+        return true
+    }
   }
 
   const nextStep = () => {
-    if (currentStep < 5) setCurrentStep(currentStep + 1)
+    if (currentStep < 5 && isStepValid()) setCurrentStep(currentStep + 1)
   }
 
   const prevStep = () => {
@@ -63,10 +112,39 @@ export function CaseEvaluationForm() {
     setCurrentStep(1)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Handle form submission
-    console.log("Form submitted:", formData)
+  const [error, setError] = useState<string | null>(null)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentStep(6);
+    // Optionally clear form fields here if you want:
+    // setFormData({ ...initial values... })
+    const payload = new URLSearchParams({
+      Were_you_wrongfully_terminated_from_your_job: formData.terminated,
+      Do_you_feel_like_you_are_being_discriminated_against: formData.discriminated,
+      Name_of_Employer: formData.employer,
+      How_many_years_did_you_work_there: formData.yearsWorked,
+      What_is_your_occupation: formData.occupation,
+      In_what_State_were_you_employed: formData.state,
+      'Date_of_Incident/Termination': formData.terminationDate,
+      Are_you_working_with_another_attorney: formData.hasAttorney,
+      Please_briefly_explain_your_situation: formData.situation,
+      First: formData.firstName,
+      Last: formData.lastName,
+      Email: formData.email,
+      Phone: formData.phone,
+    });
+    // Fire and forget, ignore any errors
+    try {
+      await fetch('https://feherlawfirm.leaddocket.com/opportunities/form/19', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: payload.toString(),
+      });
+    } catch (err) {
+      // Silently ignore network/CORS errors
+    }
   }
 
   const renderStep = () => {
@@ -114,6 +192,63 @@ export function CaseEvaluationForm() {
         )
 
       case 1:
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <Label className="text-lg font-semibold text-gray-800">Were you terminated from your job?</Label>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant={formData.terminated === "yes" ? "default" : "outline"}
+                  onClick={() => updateFormData("terminated", "yes")}
+                  className={formData.terminated === "yes" ? "bg-[#1e509a] hover:bg-[#1a4785]" : ""}
+                >
+                  Yes
+                </Button>
+                <Button
+                  type="button"
+                  variant={formData.terminated === "no" ? "default" : "outline"}
+                  onClick={() => updateFormData("terminated", "no")}
+                  className={formData.terminated === "no" ? "bg-[#1e509a] hover:bg-[#1a4785]" : ""}
+                >
+                  No
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <Label className="text-lg font-semibold text-gray-800">
+                Do you feel like you are being discriminated against? (age, gender, race, religion, etc.)
+              </Label>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant={formData.discriminated === "yes" ? "default" : "outline"}
+                  onClick={() => updateFormData("discriminated", "yes")}
+                  className={formData.discriminated === "yes" ? "bg-[#1e509a] hover:bg-[#1a4785]" : ""}
+                >
+                  Yes
+                </Button>
+                <Button
+                  type="button"
+                  variant={formData.discriminated === "no" ? "default" : "outline"}
+                  onClick={() => updateFormData("discriminated", "no")}
+                  className={formData.discriminated === "no" ? "bg-[#1e509a] hover:bg-[#1a4785]" : ""}
+                >
+                  No
+                </Button>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 6:
+        return (
+          <div className="text-center p-6">
+            <h3 className="text-2xl font-bold">Thank you, {formData.firstName}!</h3>
+            <p className="mt-4">We’ll be in touch as soon as possible.</p>
+          </div>
+        )
+
         return (
           <div className="space-y-6">
             <div className="space-y-4">
@@ -385,49 +520,59 @@ export function CaseEvaluationForm() {
           {currentStep === 0 ? (
             renderStep()
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {renderStep()}
+            currentStep === 6 ? (
+              renderStep()
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {renderStep()}
 
-              <div className="flex justify-between pt-4">
-                {currentStep > 1 && (
-                  <Button
-                    type="button"
-                    onClick={prevStep}
-                    variant="outline"
-                    className="border-[#1e509a] text-[#1e509a] hover:bg-[#1e509a] hover:text-white"
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Previous
-                  </Button>
+                {error && (
+                  <div className="text-red-600 text-center font-medium">{error}</div>
                 )}
 
-                {currentStep < 5 ? (
-                  <Button
-                    type="button"
-                    onClick={nextStep}
-                    className="bg-gradient-to-r from-[#1e509a] to-blue-600 hover:from-[#1a4785] hover:to-blue-700 ml-auto"
-                  >
-                    Next
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    className="bg-gradient-to-r from-[#1e509a] to-blue-600 hover:from-[#1a4785] hover:to-blue-700 ml-auto"
-                  >
-                    Submit Case Review
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </form>
+                <div className="flex justify-between pt-4">
+                  {currentStep > 1 && (
+                    <Button
+                      type="button"
+                      onClick={prevStep}
+                      variant="outline"
+                      className="border-[#1e509a] text-[#1e509a] hover:bg-[#1e509a] hover:text-white"
+                    >
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Previous
+                    </Button>
+                  )}
+
+                  {currentStep < 5 ? (
+                    <Button
+                      type="button"
+                      onClick={nextStep}
+                      className="bg-gradient-to-r from-[#1e509a] to-blue-600 hover:from-[#1a4785] hover:to-blue-700 ml-auto"
+                      disabled={!isStepValid()}
+                    >
+                      Next
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      className="bg-gradient-to-r from-[#1e509a] to-blue-600 hover:from-[#1a4785] hover:to-blue-700 ml-auto"
+                      disabled={!isStepValid()}
+                    >
+                      Submit Case Review
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </form>
+            )
           )}
 
           {currentStep === 5 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
               <p className="text-sm text-gray-600 text-center">
                 <Shield className="inline h-4 w-4 mr-1 text-[#1e509a]" />
-                Your information is 100% confidential and protected by attorney-client privilege.
+                The information you provide is 100% confidential.
               </p>
             </div>
           )}
