@@ -118,81 +118,31 @@ export function CaseEvaluationForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const {
-      terminated,
-      discriminated,
-      employer,
-      yearsWorked,
-      occupation,
-      state,
-      terminationDate,
-      hasAttorney,
-      situation,
-      firstName,
-      lastName,
-      email,
-      phone
-    } = formData;
-
-    // Prepare Lead Docket payload
-    const leadDocketPayload = new URLSearchParams({
-      First: firstName,
-      Last: lastName,
-      Email: email,
-      Phone: phone,
-      Were_you_wrongfully_terminated_from_your_job: terminated,
-      Do_you_feel_like_you_are_being_discriminated_against: discriminated,
-      Name_of_Employer: employer,
-      How_many_years_did_you_work_there: yearsWorked,
-      What_is_your_occupation: occupation,
-      In_what_State_were_you_employed: state,
-      'Date_of_Incident/Termination': terminationDate,
-      Are_you_working_with_another_attorney: hasAttorney,
-      Please_briefly_explain_your_situation: situation
+    const payload = {
+      terminated: formData.terminated,
+      discriminated: formData.discriminated,
+      employer: formData.employer,
+      yearsWorked: formData.yearsWorked,
+      occupation: formData.occupation,
+      state: formData.state,
+      terminationDate: formData.terminationDate,
+      hasAttorney: formData.hasAttorney,
+      situation: formData.situation,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+    };
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
-
-    try {
-      // 1. POST to Lead Docket
-      await fetch('https://feherlawfirm.leaddocket.com/opportunities/form/19', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: leadDocketPayload.toString(),
-      });
-    } catch (err) {
-      // Silently ignore network/CORS errors
+    if (res.ok) {
+      setCurrentStep(6);
+    } else {
+      alert('Submission failed, please try again.');
     }
-
-    try {
-      // 2. POST to Zapier webhook
-      await fetch('https://hooks.zapier.com/hooks/catch/12606191/uod33ls/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          terminated,
-          discriminated,
-          employer,
-          yearsWorked,
-          occupation,
-          state,
-          terminationDate,
-          hasAttorney,
-          situation,
-          firstName,
-          lastName,
-          email,
-          phone
-        })
-      });
-    } catch (err) {
-      // Silently ignore network/CORS errors
-    }
-
-    // 3. Advance to thank-you screen (redirect)
-    router.push('/thank-you');
   }
 
   const renderStep = () => {
