@@ -118,32 +118,80 @@ export function CaseEvaluationForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = new URLSearchParams({
-      Were_you_wrongfully_terminated_from_your_job: formData.terminated,
-      Do_you_feel_like_you_are_being_discriminated_against: formData.discriminated,
-      Name_of_Employer: formData.employer,
-      How_many_years_did_you_work_there: formData.yearsWorked,
-      What_is_your_occupation: formData.occupation,
-      In_what_State_were_you_employed: formData.state,
-      'Date_of_Incident/Termination': formData.terminationDate,
-      Are_you_working_with_another_attorney: formData.hasAttorney,
-      Please_briefly_explain_your_situation: formData.situation,
-      First: formData.firstName,
-      Last: formData.lastName,
-      Email: formData.email,
-      Phone: formData.phone,
+    const {
+      terminated,
+      discriminated,
+      employer,
+      yearsWorked,
+      occupation,
+      state,
+      terminationDate,
+      hasAttorney,
+      situation,
+      firstName,
+      lastName,
+      email,
+      phone
+    } = formData;
+
+    // Prepare Lead Docket payload
+    const leadDocketPayload = new URLSearchParams({
+      First: firstName,
+      Last: lastName,
+      Email: email,
+      Phone: phone,
+      Were_you_wrongfully_terminated_from_your_job: terminated,
+      Do_you_feel_like_you_are_being_discriminated_against: discriminated,
+      Name_of_Employer: employer,
+      How_many_years_did_you_work_there: yearsWorked,
+      What_is_your_occupation: occupation,
+      In_what_State_were_you_employed: state,
+      'Date_of_Incident/Termination': terminationDate,
+      Are_you_working_with_another_attorney: hasAttorney,
+      Please_briefly_explain_your_situation: situation
     });
+
     try {
+      // 1. POST to Lead Docket
       await fetch('https://feherlawfirm.leaddocket.com/opportunities/form/19', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: payload.toString(),
+        body: leadDocketPayload.toString(),
       });
     } catch (err) {
       // Silently ignore network/CORS errors
     }
+
+    try {
+      // 2. POST to Zapier webhook
+      await fetch('https://hooks.zapier.com/hooks/catch/12606191/uod33ls/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          terminated,
+          discriminated,
+          employer,
+          yearsWorked,
+          occupation,
+          state,
+          terminationDate,
+          hasAttorney,
+          situation,
+          firstName,
+          lastName,
+          email,
+          phone
+        })
+      });
+    } catch (err) {
+      // Silently ignore network/CORS errors
+    }
+
+    // 3. Advance to thank-you screen (redirect)
     router.push('/thank-you');
   }
 
