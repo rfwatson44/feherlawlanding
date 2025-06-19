@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -113,11 +114,10 @@ export function CaseEvaluationForm() {
   }
 
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCurrentStep(6);
-    // Optionally clear form fields here if you want:
-    // setFormData({ ...initial values... })
     const payload = new URLSearchParams({
       Were_you_wrongfully_terminated_from_your_job: formData.terminated,
       Do_you_feel_like_you_are_being_discriminated_against: formData.discriminated,
@@ -133,7 +133,6 @@ export function CaseEvaluationForm() {
       Email: formData.email,
       Phone: formData.phone,
     });
-    // Fire and forget, ignore any errors
     try {
       await fetch('https://feherlawfirm.leaddocket.com/opportunities/form/19', {
         method: 'POST',
@@ -145,6 +144,7 @@ export function CaseEvaluationForm() {
     } catch (err) {
       // Silently ignore network/CORS errors
     }
+    router.push('/thank-you');
   }
 
   const renderStep = () => {
