@@ -139,7 +139,7 @@ export function CaseEvaluationForm() {
       body: JSON.stringify(payload),
     });
     if (res.ok) {
-      setCurrentStep(6);
+      router.push('/thank-you');
     } else {
       alert('Submission failed, please try again.');
     }
